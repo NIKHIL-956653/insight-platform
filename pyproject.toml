@@ -1,0 +1,149 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "insight"
+version = "0.1.0"
+description = "InSight Platform — enterprise meeting intelligence"
+requires-python = ">=3.13"
+license = { text = "Proprietary" }
+
+# Every dependency here is BSD / MIT / Apache-2.0. No copyleft: this is
+# delivered software and an AGPL dependency would infect the whole platform.
+# See docs/ADR-001-stack.md.
+dependencies = [
+  # web
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "python-multipart>=0.0.12",
+  # config and validation
+  "pydantic>=2.9",
+  "pydantic-settings>=2.6",
+  # database
+  "sqlalchemy[asyncio]>=2.0.36",
+  "asyncpg>=0.30",
+  "alembic>=1.14",
+  "pgvector>=0.3.6",
+  # cache and streams
+  "redis>=5.2",
+  # authentication
+  "argon2-cffi>=23.1",
+  "pyjwt>=2.10",
+  # authorization
+  "authzed>=1.1",
+  # llm gateway and observability
+  "litellm>=1.52",
+  "langfuse>=2.53",
+  # logging
+  "structlog>=24.4",
+  "orjson>=3.10",
+  # http client (also how we reach Ollama)
+  "httpx>=0.27",
+  # document parsing — pypdf/pdfplumber chosen over PyMuPDF (AGPL)
+  "pypdf>=5.1",
+  "pdfplumber>=0.11",
+  "python-docx>=1.1",
+  "openpyxl>=3.1",
+  # cross-encoder reranking (BGE), CPU
+  "sentence-transformers>=3.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "pytest-cov>=6.0",
+  "respx>=0.21",        # mocks httpx at the transport layer — no live LLM calls in tests
+  "faker>=33.1",
+  "ruff>=0.8",
+  "mypy>=1.13",
+]
+
+# Three processes per locked decision 4: the modular-monolith API, plus
+# separate Ingestion and Durable Background Worker services.
+# Targets land at INS-3 (api), INS-19/26 (ingest), INS-26 (worker) — an
+# entry point is only resolved when invoked, so declaring them now is safe.
+[project.scripts]
+insight-api = "insight.main:run"
+insight-ingest = "insight.ingestion.service:run"
+insight-worker = "insight.worker.main:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/insight"]
+
+# ----------------------------------------------------------------------------
+# ruff — linter and formatter
+# ----------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",    # pycodestyle
+  "F",         # pyflakes
+  "I",         # import sorting
+  "N",         # naming
+  "UP",        # pyupgrade
+  "B",         # bugbear
+  "C4",        # comprehensions
+  "ASYNC",     # async correctness
+  "S",         # bandit — security
+  "T20",       # no print()
+  "SIM",       # simplify
+  "RUF",
+]
+ignore = [
+  "E501",      # line length is handled by the formatter
+  "B008",      # FastAPI Depends() in defaults is the documented pattern
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]   # asserts and fake secrets are fine in tests
+"migrations/**" = ["E402", "F401"]
+
+# ----------------------------------------------------------------------------
+# mypy — strict, because a tenancy bug is a data breach
+# ----------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.13"
+files = ["src", "tests"]
+strict = true
+warn_unreachable = true
+warn_return_any = true
+disallow_untyped_defs = true
+no_implicit_reexport = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["litellm.*", "langfuse.*", "pdfplumber.*", "sentence_transformers.*", "authzed.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "migrations.*"
+ignore_errors = true
+
+# ----------------------------------------------------------------------------
+# pytest
+# ----------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+  "integration: needs the docker-compose stack running",
+  "tenancy: cross-tenant isolation — R1 gate criterion 1",
+  "audit: hash-chain integrity — R1 gate criterion 2",
+  "grounding: citation grounding — R1 gate criterion 3",
+  "streaming: zero-loss reconnection — R1 gate criterion 4",
+]
+
+[tool.coverage.run]
+source = ["src/insight"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]

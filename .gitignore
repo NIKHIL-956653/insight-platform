@@ -1,0 +1,94 @@
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# virtualenv
+.venv/
+venv/
+env/
+
+# ---------------------------------------------------------------------------
+# Secrets — never commit
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+spicedb_preshared_key*
+
+# ---------------------------------------------------------------------------
+# CLIENT DATA — Pro Tech board packs are confidential and must never be
+# committed, not even redacted. Test fixtures are the one exception.
+# ---------------------------------------------------------------------------
+data/
+corpus/
+uploads/
+storage/
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+!tests/fixtures/**/*.pdf
+!tests/fixtures/**/*.docx
+!tests/fixtures/**/*.xlsx
+
+# ---------------------------------------------------------------------------
+# Caches: test, type, lint, coverage
+# ---------------------------------------------------------------------------
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# Local models and embedding caches (big, reproducible, not source)
+# ---------------------------------------------------------------------------
+.ollama/
+models/
+*.gguf
+*.safetensors
+.cache/
+sentence_transformers_cache/
+
+# ---------------------------------------------------------------------------
+# Node — React portal, INS-32
+# ---------------------------------------------------------------------------
+node_modules/
+web/dist/
+web/.vite/
+npm-debug.log*
+
+# ---------------------------------------------------------------------------
+# Logs, local docker volumes
+# ---------------------------------------------------------------------------
+*.log
+logs/
+.docker-volumes/
+pgdata/
+
+# ---------------------------------------------------------------------------
+# IDE and OS
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
