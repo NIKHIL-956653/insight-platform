@@ -100,6 +100,11 @@ ignore = [
   "B008",      # FastAPI Depends() in defaults is the documented pattern
 ]
 
+[tool.ruff.lint.isort]
+# Without this, `import insight.models` sorts into the third-party block
+# while `from insight.x import y` sorts into first-party.
+known-first-party = ["insight", "tests"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]   # asserts and fake secrets are fine in tests
 "migrations/**" = ["E402", "F401"]
@@ -131,7 +136,9 @@ ignore_errors = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "-ra --strict-markers --strict-config"
+# Integration tests need the docker-compose stack. Excluded by default so a
+# bare `pytest` works anywhere; run them with `pytest -m integration`.
+addopts = "-ra --strict-markers --strict-config -m 'not integration'"
 markers = [
   "integration: needs the docker-compose stack running",
   "tenancy: cross-tenant isolation — R1 gate criterion 1",

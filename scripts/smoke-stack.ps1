@@ -183,7 +183,7 @@ Test-Step "generation responds" {
 # --- summary ---------------------------------------------------------------
 Write-Host ""
 if ($script:Failures -eq 0) {
-    Write-Host "All checks passed. Stack is ready for INS-3." -ForegroundColor Green
+    Write-Host "All checks passed. Development stack is healthy." -ForegroundColor Green
     exit 0
 } else {
     Write-Host "$($script:Failures) check(s) failed." -ForegroundColor Red

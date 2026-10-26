@@ -10,6 +10,7 @@ from fastapi import FastAPI
 
 from insight import __version__
 from insight.config import Settings, get_settings
+from insight.db.session import create_engine, create_session_factory, dispose_engine
 from insight.logging import configure_logging, get_logger
 
 log = get_logger(__name__)
@@ -26,9 +27,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         embedding_dimension=settings.embedding_dimension,
         generation_model=settings.litellm_generation_model,
     )
-    # Database, Redis and SpiceDB clients attach here from INS-4 onward.
-    yield
-    log.info("stopped")
+    # create_async_engine does not connect eagerly, so building it here is
+    # cheap and the app still starts when Postgres is briefly unavailable.
+    engine = create_engine(settings)
+    app.state.engine = engine
+    app.state.session_factory = create_session_factory(engine)
+    log.info("database pool ready", pool_size=settings.db_pool_size)
+
+    try:
+        yield
+    finally:
+        await dispose_engine(engine)
+        log.info("stopped")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
