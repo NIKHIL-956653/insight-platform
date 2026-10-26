@@ -18,7 +18,9 @@ REQUIRED_SECRETS: dict[str, Any] = {
     "postgres_password": "test-pg-password",
     "postgres_audit_password": "test-audit-password",
     "spicedb_preshared_key": "test-spicedb-key",
-    "jwt_secret": "test-jwt-secret",
+    # 64 hex characters, like `openssl rand -hex 32` produces. A short or
+    # placeholder value is now rejected by Settings.
+    "jwt_secret": "a3f1" * 16,
 }
 
 

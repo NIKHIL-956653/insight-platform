@@ -23,6 +23,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # outside the client tenancy, which their data-residency decision forbids.
 LANGFUSE_SAAS_HOSTS = ("cloud.langfuse.com",)
 
+# A signing secret left at its .env.example value is public knowledge, and
+# anyone holding it can forge a token for any user. Length alone does not
+# catch it: "replace-with-openssl-rand-hex-32" is exactly 32 characters.
+PLACEHOLDER_PREFIXES = ("replace-with", "change-me", "generate-", "your-", "example")
+
+# HS256 below 32 bytes is brute-forceable offline from a single captured
+# token (RFC 7518 section 3.2).
+MIN_JWT_SECRET_LENGTH = 32
+
 
 class Settings(BaseSettings):
     """Runtime configuration, validated once at startup."""
@@ -160,6 +169,24 @@ class Settings(BaseSettings):
                     "Production inference must route inside the client tenancy "
                     "(Bedrock / Azure OpenAI). See docs/ADR-001-stack.md."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def _jwt_secret_must_be_real(self) -> Settings:
+        secret = self.jwt_secret.get_secret_value()
+        if len(secret) < MIN_JWT_SECRET_LENGTH:
+            raise ValueError(
+                f"JWT_SECRET is {len(secret)} characters; at least "
+                f"{MIN_JWT_SECRET_LENGTH} are required. HS256 with a short secret "
+                "is brute-forceable offline from one captured token. "
+                "Generate one with: openssl rand -hex 32"
+            )
+        if secret.lower().startswith(PLACEHOLDER_PREFIXES):
+            raise ValueError(
+                "JWT_SECRET is still the .env.example placeholder. That value is "
+                "public, so anyone can forge a token for any user. "
+                "Generate one with: openssl rand -hex 32"
+            )
         return self
 
     @model_validator(mode="after")

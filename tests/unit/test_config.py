@@ -31,11 +31,37 @@ class TestSecretHandling:
     def test_repr_does_not_leak(self, settings: Settings) -> None:
         dumped = repr(settings)
         assert "test-pg-password" not in dumped
-        assert "test-jwt-secret" not in dumped
+        assert settings.jwt_secret.get_secret_value() not in dumped
         assert "**********" in dumped
 
     def test_value_still_reachable_deliberately(self, settings: Settings) -> None:
         assert settings.postgres_password.get_secret_value() == "test-pg-password"
+
+
+class TestJwtSecretGuard:
+    """A forged token is indistinguishable from a real one."""
+
+    def test_short_secret_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="at least 32"):
+            make_settings(jwt_secret="too-short")
+
+    @pytest.mark.parametrize(
+        "placeholder",
+        [
+            "replace-with-openssl-rand-hex-32",
+            "change-me-change-me-change-me-change-me",
+            "generate-your-own-secret-value-here-please",
+            "your-secret-key-goes-right-here-ok",
+        ],
+    )
+    def test_placeholder_is_rejected_even_when_long_enough(self, placeholder: str) -> None:
+        assert len(placeholder) >= 32
+        with pytest.raises(ValidationError, match="placeholder"):
+            make_settings(jwt_secret=placeholder)
+
+    def test_a_real_secret_is_accepted(self) -> None:
+        s = make_settings(jwt_secret="b" * 64)
+        assert s.jwt_secret.get_secret_value() == "b" * 64
 
 
 class TestDerivedValues:

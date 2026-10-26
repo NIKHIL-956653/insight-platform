@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from insight import __version__
+from insight.api.v1 import auth as auth_routes
 from insight.config import Settings, get_settings
 from insight.db.session import create_engine, create_session_factory, dispose_engine
 from insight.logging import configure_logging, get_logger
@@ -76,7 +77,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "env": settings.app_env,
         }
 
-    # Routers register here from INS-6 onward.
+    app.include_router(auth_routes.router)
     return app
 
 
