@@ -1,0 +1,22 @@
+# Normalise line endings. The Postgres init script runs inside a Linux
+# container — CRLF would make it fail with an unreadable "bad interpreter"
+# error, so force LF on everything except Windows-native scripts.
+* text=auto eol=lf
+
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+*.sh    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.sql   text eol=lf
+*.zed   text eol=lf
+
+*.png   binary
+*.jpg   binary
+*.pdf   binary
+*.docx  binary
+*.xlsx  binary
+*.gguf  binary
+*.safetensors binary
